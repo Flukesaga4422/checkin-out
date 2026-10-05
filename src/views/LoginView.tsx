@@ -4,6 +4,7 @@ import { User } from '../types';
 
 interface LoginViewProps {
   users: User[];
+  authenticate?: (username: string, password: string) => Promise<User>;
   shopName: string;
   onLogin: (user: User) => void;
   onOpenInstallModal?: () => void;
@@ -11,6 +12,7 @@ interface LoginViewProps {
 
 export const LoginView: React.FC<LoginViewProps> = ({
   users,
+  authenticate,
   shopName,
   onLogin,
   onOpenInstallModal,
@@ -18,6 +20,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
   const [isStandalone, setIsStandalone] = useState(true);
 
   useEffect(() => {
@@ -27,19 +30,18 @@ export const LoginView: React.FC<LoginViewProps> = ({
     setIsStandalone(!!isStandaloneMode);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const found = users.find(
-      (u) => u.user.trim().toLowerCase() === username.trim().toLowerCase() && u.pass === password
-    );
-
-    if (!found) {
-      setError('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
-      return;
-    }
-
-    setError('');
-    onLogin(found);
+    if (busy) return;
+    setBusy(true); setError('');
+    try {
+      const found = authenticate ? await authenticate(username, password) : users.find(
+        u => u.user.trim().toLowerCase() === username.trim().toLowerCase() && u.pass === password
+      );
+      if (!found) throw new Error('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+      onLogin(found);
+    } catch (e) { setError((e as Error).message); }
+    finally { setBusy(false); }
   };
 
   return (
@@ -101,9 +103,10 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
           <button
             type="submit"
+            disabled={busy}
             className="w-full py-3.5 px-4 rounded-xl bg-[#2F7D6D] hover:bg-[#27685b] text-white font-semibold text-sm shadow-md shadow-[#2F7D6D]/20 flex items-center justify-center gap-2 transition-transform active:scale-[0.99] cursor-pointer"
           >
-            <span>เข้าสู่ระบบ</span>
+            <span>{busy ? 'กำลังเข้าสู่ระบบ…' : 'เข้าสู่ระบบ'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>

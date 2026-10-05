@@ -32,7 +32,7 @@ export const EditStaffSheet: React.FC<EditStaffSheetProps> = ({
     const cleanName = name.trim();
     const cleanPass = pass.trim();
 
-    if (!cleanName || !cleanUser || !cleanPass) {
+    if (!cleanName || !cleanUser || (!cleanPass && staff.pass)) {
       setError('กรอกชื่อ ชื่อผู้ใช้ และรหัสผ่านให้ครบ');
       return;
     }
@@ -141,10 +141,11 @@ export const EditStaffSheet: React.FC<EditStaffSheetProps> = ({
                 รหัสผ่าน
               </label>
               <input
-                type="text"
+                type="password"
+                placeholder={staff.pass ? '' : 'เว้นว่างเพื่อใช้รหัสเดิม'}
                 value={pass}
                 onChange={(e) => setPass(e.target.value)}
-                required
+                required={!!staff.pass}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-[#254039] bg-slate-50 dark:bg-[#0F1B19] text-sm font-mono text-slate-800 dark:text-slate-100"
               />
             </div>

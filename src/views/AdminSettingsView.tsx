@@ -6,8 +6,8 @@ import { getTodayKey, playSound } from '../utils/dateUtils';
 interface AdminSettingsViewProps {
   db: SpaDatabase;
   currentUser: User;
-  onUpdateShopAndStart: (shop: string, start: string) => void;
-  onUpdateAdminPassword: (newPass: string) => void;
+  onUpdateShopAndStart: (shop: string, start: string) => Promise<boolean> | boolean | void;
+  onUpdateAdminPassword: (newPass: string) => Promise<boolean> | boolean | void;
   onImportBackup: (importedDb: SpaDatabase) => void;
   onFactoryReset: () => void;
   onOpenInstallModal?: () => void;
@@ -37,18 +37,19 @@ export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSaveStore = (e: React.FormEvent) => {
+  const handleSaveStore = async (e: React.FormEvent) => {
     e.preventDefault();
-    onUpdateShopAndStart(shopName.trim() || 'ร้านนวดและสปา', startTime);
+    const saved = await onUpdateShopAndStart(shopName.trim() || 'ร้านนวดและสปา', startTime);
+    if (saved === false) return;
     playSound('success');
     setStoreSaved(true);
     setTimeout(() => setStoreSaved(false), 2500);
   };
 
-  const handlePasswordChange = (e: React.FormEvent) => {
+  const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (p1.trim().length < 4) {
-      setPwError('รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร');
+    if (p1.trim().length < 8) {
+      setPwError('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
       return;
     }
     if (p1 !== p2) {
@@ -56,7 +57,8 @@ export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
       return;
     }
 
-    onUpdateAdminPassword(p1.trim());
+    const saved = await onUpdateAdminPassword(p1.trim());
+    if (saved === false) return;
     setP1('');
     setP2('');
     setPwError('');
@@ -233,7 +235,7 @@ export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({
         <form onSubmit={handlePasswordChange} className="space-y-3">
           <div>
             <label className="text-slate-500 dark:text-[#8FAAA4] block mb-1">
-              รหัสผ่านใหม่ (อย่างน้อย 4 ตัว)
+              รหัสผ่านใหม่ (อย่างน้อย 8 ตัว)
             </label>
             <input
               type="password"

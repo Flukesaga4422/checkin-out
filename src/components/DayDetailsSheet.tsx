@@ -178,7 +178,7 @@ export const DayDetailsSheet: React.FC<DayDetailsSheetProps> = ({
     playSound('success');
   };
 
-  const getUser = (uid: number) => users.find((u) => u.id === uid) || { name: 'พนักงาน' };
+  const getUser = (uid: number) => users.find((u) => u.id === uid) || { name: 'พนักงาน', pos: '' };
 
   return (
     <div

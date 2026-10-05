@@ -1,0 +1,3 @@
+[functions.spa-api]
+# The handler validates EVERY JWT with auth.getUser before reading or writing data.
+verify_jwt = false

@@ -5,7 +5,7 @@ import { playSound } from '../utils/dateUtils';
 
 interface StaffMeViewProps {
   currentUser: User;
-  onUpdatePassword: (newPass: string) => void;
+  onUpdatePassword: (newPass: string) => Promise<boolean> | boolean | void;
   onOpenInstallModal?: () => void;
 }
 
@@ -19,10 +19,10 @@ export const StaffMeView: React.FC<StaffMeViewProps> = ({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  const handlePasswordChange = (e: React.FormEvent) => {
+  const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (p1.trim().length < 4) {
-      setError('รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร');
+    if (p1.trim().length < 8) {
+      setError('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
       return;
     }
     if (p1 !== p2) {
@@ -30,7 +30,8 @@ export const StaffMeView: React.FC<StaffMeViewProps> = ({
       return;
     }
 
-    onUpdatePassword(p1.trim());
+    const saved = await onUpdatePassword(p1.trim());
+    if (saved === false) return;
     setP1('');
     setP2('');
     setError('');
@@ -114,7 +115,7 @@ export const StaffMeView: React.FC<StaffMeViewProps> = ({
         <form onSubmit={handlePasswordChange} className="space-y-3 text-xs">
           <div>
             <label className="text-slate-500 dark:text-[#8FAAA4] block mb-1">
-              รหัสผ่านใหม่ (อย่างน้อย 4 ตัว)
+              รหัสผ่านใหม่ (อย่างน้อย 8 ตัว)
             </label>
             <input
               type="password"

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { SpaDatabase, User, PaySlip, LeaveType, LeaveRequest } from './types';
 import {
   createInitialDatabase,
@@ -33,11 +33,13 @@ import { AdminCalendarView } from './views/AdminCalendarView';
 import { AdminPayrollView } from './views/AdminPayrollView';
 import { AdminStaffView } from './views/AdminStaffView';
 import { AdminSettingsView } from './views/AdminSettingsView';
+import { cloudConfigured, demoMode, supabase, cloudLogin, loadCloud, saveCloud, clearCloudFiles } from './lib/cloud';
 import { AlertCircle } from 'lucide-react';
 
 export default function App() {
   // Load Database from localStorage
   const [db, setDb] = useState<SpaDatabase>(() => {
+    if (!demoMode) return { ...createCleanSeed(), users: [] };
     try {
       const saved = localStorage.getItem(DB_STORAGE_KEY) || localStorage.getItem('spa_db_v1');
       if (saved) {
@@ -56,27 +58,73 @@ export default function App() {
     return createInitialDatabase();
   });
 
-  // Save database helper
-  const updateDb = (updater: (prev: SpaDatabase) => SpaDatabase) => {
-    setDb((prev) => {
-      const next = updater(prev);
-      try {
-        localStorage.setItem(DB_STORAGE_KEY, JSON.stringify(next));
-      } catch (e) {
-        console.error('Failed to persist database:', e);
-      }
-      return next;
-    });
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('home');
+  const [cloudBusy, setCloudBusy] = useState(false);
+  const [syncError, setSyncError] = useState('');
+  const writing = useRef(false);
+  const dbRef = useRef(db);
+  dbRef.current = db;
+  const userRef = useRef(currentUser);
+  userRef.current = currentUser;
+
+  const acceptCloud = (data: { db: SpaDatabase; uid: number }) => {
+    dbRef.current = data.db;
+    setDb(data.db);
+    setCurrentUser(data.db.users.find(u => u.id === data.uid) || null);
   };
-
-  // Auth & Active User State
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    return db.users.find((u) => u.user === 'admin') || db.users[0] || null;
-  });
-
-  const [activeTab, setActiveTab] = useState<string>(() => {
-    return currentUser?.role === 'admin' ? 'today' : 'home';
-  });
+  const updateDb = (updater: (prev: SpaDatabase) => SpaDatabase) => {
+    if (!cloudConfigured) {
+      if (!demoMode) return;
+      const next = updater(dbRef.current);
+      try { localStorage.setItem(DB_STORAGE_KEY, JSON.stringify(next)); }
+      catch { setSyncError('พื้นที่เครื่องเต็ม บันทึกไม่สำเร็จ'); return; }
+      dbRef.current = next;
+      setDb(next);
+      return Promise.resolve(true);
+    }
+    if (writing.current) return Promise.resolve(false);
+    writing.current = true;
+    setCloudBusy(true);
+    setSyncError('');
+    const before = dbRef.current;
+    const next = updater(before);
+    return saveCloud(before, next).then(data => {
+      acceptCloud(data);
+      setToastMsg('บันทึกเข้าระบบกลางแล้ว');
+      setTimeout(() => setToastMsg(null), 2600);
+      return true;
+    }).catch(async error => {
+      setSyncError(`บันทึกไม่สำเร็จ: ${error.message}`);
+      // Refresh after a conflict; never pretend an offline save succeeded.
+      try { acceptCloud(await loadCloud()); } catch {}
+      return false;
+    }).finally(() => { writing.current = false; setCloudBusy(false); });
+  };
+  useEffect(() => {
+    if (!cloudConfigured) return;
+    let alive = true;
+    const refresh = async () => {
+      if (writing.current) return;
+      const { data: { session } } = await supabase!.auth.getSession();
+      if (!session) { if (alive) setCurrentUser(null); return; }
+      try {
+        const data = await loadCloud();
+        const { data: { session: stillSignedIn } } = await supabase!.auth.getSession();
+        if (alive && !writing.current && stillSignedIn?.user.id === session.user.id) {
+          const first = !userRef.current;
+          acceptCloud(data);
+          if (first) setActiveTab(data.db.users.find(u => u.id === data.uid)?.role === 'admin' ? 'today' : 'home');
+          setSyncError('');
+        }
+      } catch (e) { if (alive) setSyncError((e as Error).message); }
+    };
+    void refresh();
+    const timer = window.setInterval(() => { if (document.visibilityState === 'visible') void refresh(); }, 30000);
+    const focus = () => void refresh();
+    window.addEventListener('focus', focus);
+    return () => { alive = false; clearInterval(timer); window.removeEventListener('focus', focus); };
+  }, []);
 
   // Calendar year/month state
   const now = new Date();
@@ -132,6 +180,7 @@ export default function App() {
   // Toast Notification state
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const showToast = (msg: string) => {
+    if (cloudConfigured && writing.current) return;
     setToastMsg(msg);
     setTimeout(() => {
       setToastMsg((current) => (current === msg ? null : current));
@@ -149,6 +198,12 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    if (cloudConfigured) {
+      void supabase!.auth.signOut();
+      clearCloudFiles();
+      const clean = { ...createCleanSeed(), users: [] };
+      setDb(clean); dbRef.current = clean;
+    }
     setCurrentUser(null);
     setSelectedDateForSheet(null);
     setViewingPhoto(null);
@@ -159,6 +214,7 @@ export default function App() {
   };
 
   const handleQuickSwitchUser = (user: User) => {
+    if (cloudConfigured) return;
     setCurrentUser(user);
     setActiveTab(user.role === 'admin' ? 'today' : 'home');
     playSound('click');
@@ -166,6 +222,7 @@ export default function App() {
   };
 
   const handleResetData = () => {
+    if (cloudConfigured) { showToast('การล้างข้อมูลกลางต้องจัดการโดยผู้ดูแลใน Supabase'); return; }
     const fresh = createInitialDatabase();
     setDb(fresh);
     localStorage.setItem(DB_STORAGE_KEY, JSON.stringify(fresh));
@@ -413,7 +470,7 @@ export default function App() {
       users: prev.users.map((u) => (u.id === updatedUser.id ? updatedUser : u)),
     }));
     // Also update currentUser if editing self
-    if (currentUser?.id === updatedUser.id) {
+    if (!cloudConfigured && currentUser?.id === updatedUser.id) {
       setCurrentUser(updatedUser);
     }
     showToast('บันทึกการแก้ไขแล้ว');
@@ -421,6 +478,7 @@ export default function App() {
 
   // Delete Staff Member
   const handleDeleteStaff = (staffId: number) => {
+    if (cloudConfigured) { updateDb(prev => ({...prev, users: prev.users.filter(u => u.id !== staffId)})); return; }
     updateDb((prev) => {
       const nextAtt = { ...prev.att };
       Object.keys(nextAtt)
@@ -446,30 +504,33 @@ export default function App() {
   };
 
   // Password Update
-  const handleUpdatePassword = (newPass: string) => {
-    if (!currentUser) return;
+  const handleUpdatePassword = async (newPass: string) => {
+    if (!currentUser) return false;
     const updated = { ...currentUser, pass: newPass };
-    setCurrentUser(updated);
-    updateDb((prev) => ({
+    if (!cloudConfigured) setCurrentUser(updated);
+    const saved = await updateDb((prev) => ({
       ...prev,
       users: prev.users.map((u) => (u.id === currentUser.id ? updated : u)),
     }));
-    showToast('เปลี่ยนรหัสผ่านแล้ว');
+    if (saved !== false) showToast('เปลี่ยนรหัสผ่านแล้ว');
+    return saved !== false;
   };
 
   // Shop & Start Time Update
-  const handleUpdateShopAndStart = (shop: string, start: string) => {
-    updateDb((prev) => ({
+  const handleUpdateShopAndStart = async (shop: string, start: string) => {
+    const saved = await updateDb((prev) => ({
       ...prev,
       shop,
       storeName: shop,
       start,
     }));
-    showToast('บันทึกแล้ว');
+    if (saved !== false) showToast('บันทึกแล้ว');
+    return saved !== false;
   };
 
   // Backup Import
   const handleImportBackup = (importedDb: SpaDatabase) => {
+    if (cloudConfigured) { showToast('ไฟล์สำรองแบบทดลองไม่สามารถนำเข้าทับระบบกลางได้'); return; }
     setDb(importedDb);
     try {
       localStorage.setItem(DB_STORAGE_KEY, JSON.stringify(importedDb));
@@ -482,6 +543,7 @@ export default function App() {
 
   // Factory Reset
   const handleFactoryReset = () => {
+    if (cloudConfigured) { showToast('การล้างข้อมูลกลางต้องจัดการโดยผู้ดูแลใน Supabase'); return; }
     try {
       localStorage.removeItem(DB_STORAGE_KEY);
       localStorage.removeItem('spa_db_v1');
@@ -549,8 +611,20 @@ export default function App() {
   const pendingLeavesCount = db.leaves.filter((l) => l.status === 'pending').length;
   const staffList = db.users.filter((u) => u.role === 'staff');
 
+  if (!cloudConfigured && !demoMode) return (
+    <div className="min-h-screen bg-[#EDF3F1] flex items-center justify-center p-6">
+      <div className="max-w-md bg-white rounded-3xl p-8 shadow-xl space-y-4">
+        <h1 className="text-xl font-bold text-[#17332F]">ระบบพนักงานร้านสปา</h1>
+        <p>ยังไม่ได้เชื่อมฐานข้อมูลกลาง กรุณาให้ผู้ดูแลตั้งค่าระบบก่อนแจกให้พนักงาน</p>
+        <p className="text-sm text-slate-500">ดูขั้นตอนใน README ของโปรเจกต์ แล้วเชื่อม Supabase เพื่อเก็บเวลา รูปเช็คอิน และสลิปเงินเดือนร่วมกัน</p>
+      </div>
+    </div>
+  );
   return (
     <div className="min-h-screen bg-[#EDF3F1] dark:bg-[#0F1B19] text-[#17332F] dark:text-[#E4F0ED] flex flex-col justify-between selection:bg-[#2F7D6D] selection:text-white">
+      {demoMode && <div className="bg-amber-100 text-amber-900 text-xs p-3 text-center">โหมดทดลอง: ข้อมูลอยู่ในเครื่องนี้เท่านั้น</div>}
+      {syncError && <div role="alert" className="bg-rose-100 text-rose-900 p-3 text-sm">{syncError}</div>}
+      {cloudBusy && <div role="status" className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center"><div className="bg-white rounded-2xl p-6">กำลังบันทึกเข้าระบบกลาง…</div></div>}
       {/* Toast Notification */}
       {toastMsg && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 bg-[#17332F] dark:bg-white text-white dark:text-[#17332F] rounded-full shadow-2xl text-xs font-semibold tracking-wide max-w-[90vw] text-center border border-white/20 animate-fade-in">
@@ -561,6 +635,11 @@ export default function App() {
       {/* Login Screen */}
       {!currentUser ? (
         <LoginView
+          authenticate={cloudConfigured ? async (username, password) => {
+            const data = await cloudLogin(username, password);
+            acceptCloud(data);
+            return data.db.users.find(u => u.id === data.uid)!;
+          } : undefined}
           users={db.users}
           shopName={db.shop}
           onLogin={handleLogin}
@@ -580,6 +659,7 @@ export default function App() {
             onQuickSwitchUser={handleQuickSwitchUser}
             onOpenInstallModal={() => setInstallModalOpen(true)}
             allUsers={db.users}
+            demoMode={demoMode}
           />
 
           {/* Main Content Area */}

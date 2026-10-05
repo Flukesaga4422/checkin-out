@@ -3,6 +3,7 @@ import { LogOut, Moon, Sun, RotateCcw, Users, Smartphone } from 'lucide-react';
 import { User } from '../types';
 
 interface HeaderProps {
+  demoMode?: boolean;
   currentUser: User;
   storeName: string;
   theme: 'light' | 'dark';
@@ -15,6 +16,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
+  demoMode = false,
   currentUser,
   storeName,
   theme,
@@ -60,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           {/* Quick Switch User Dropdown */}
-          <div className="relative">
+          {demoMode && <div className="relative">
             <button
               type="button"
               onClick={() => setShowSwitchMenu((prev) => !prev)}
@@ -97,6 +99,7 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
+          }
           {/* Theme Toggle */}
           <button
             type="button"
@@ -108,7 +111,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           {/* Reset Demo Data */}
-          <button
+          {demoMode && <button
             type="button"
             onClick={() => {
               if (window.confirm('ต้องการรีเซ็ตข้อมูลตัวอย่างกลับเป็นค่าเริ่มต้นหรือไม่?')) {
@@ -119,7 +122,7 @@ export const Header: React.FC<HeaderProps> = ({
             title="รีเซ็ตข้อมูลตัวอย่าง"
           >
             <RotateCcw className="w-4 h-4" />
-          </button>
+          </button>}
 
           {/* Logout */}
           <button

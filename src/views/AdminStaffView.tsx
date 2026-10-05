@@ -17,7 +17,7 @@ export const AdminStaffView: React.FC<AdminStaffViewProps> = ({
   const [name, setName] = useState('');
   const [pos, setPos] = useState('');
   const [user, setUser] = useState('');
-  const [pass, setPass] = useState('1234');
+  const [pass, setPass] = useState('');
   const [salary, setSalary] = useState('');
   const [phone, setPhone] = useState('');
   const [formError, setFormError] = useState('');
@@ -43,7 +43,7 @@ export const AdminStaffView: React.FC<AdminStaffViewProps> = ({
       setName('');
       setPos('');
       setUser('');
-      setPass('1234');
+      setPass('');
       setSalary('');
       setPhone('');
       setFormError('');
@@ -160,7 +160,7 @@ export const AdminStaffView: React.FC<AdminStaffViewProps> = ({
                   type="text"
                   value={pass}
                   onChange={(e) => setPass(e.target.value)}
-                  placeholder="1234"
+                  placeholder="อย่างน้อย 8 ตัวอักษร"
                   required
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-[#254039] bg-slate-50 dark:bg-[#0F1B19] text-sm text-slate-800 dark:text-slate-100 font-mono"
                 />
