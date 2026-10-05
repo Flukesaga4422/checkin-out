@@ -1,0 +1,33 @@
+{
+  "id": "/",
+  "name": "ระบบพนักงานร้านสปา (Spa Staff)",
+  "short_name": "SpaStaff",
+  "description": "ระบบลงเวลา เช็คอินถ่ายรูป คำขอลา วันหยุดปกติ ปฏิทินร้าน และคำนวณสลิปเงินเดือนสำหรับพนักงานและผู้ดูแลร้านสปา",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#17332F",
+  "theme_color": "#17332F",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
