@@ -1,6 +1,10 @@
 {
   "name": "ระบบพนักงานร้านสปา (Spa Staff App)",
   "description": "ระบบลงเวลา เช็คอินถ่ายรูป คำขอลา ปฏิทินร้าน และคำนวณสลิปเงินเดือนสำหรับพนักงานและผู้ดูแลร้านสปา",
-  "requestFramePermissions": ["camera"],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

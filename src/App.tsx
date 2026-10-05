@@ -271,7 +271,7 @@ export default function App() {
       note,
       certFile,
       certName,
-      status: type === 'dayoff' ? 'approved' : 'pending',
+      status: 'pending',
       createdAt: todayKey,
     }));
 
@@ -284,11 +284,11 @@ export default function App() {
     showToast(
       type === 'dayoff'
         ? dates.length > 1
-          ? `บันทึกวันหยุดปกติต่อเนื่อง ${dates.length} วันแล้ว`
-          : 'บันทึกวันหยุดประจำสัปดาห์แล้ว'
+          ? `ส่งคำขอวันหยุดปกติต่อเนื่อง ${dates.length} วันแล้ว รอผู้ดูแลอนุมัติ`
+          : 'ส่งคำขอวันหยุดปกติแล้ว รอผู้ดูแลอนุมัติ'
         : dates.length > 1
-        ? `ส่งคำขอลาต่อเนื่อง ${dates.length} วันแล้ว รออนุมัติ`
-        : 'ส่งคำขอแล้ว รอผู้ดูแลอนุมัติ'
+        ? `ส่งคำขอลาต่อเนื่อง ${dates.length} วันแล้ว รอผู้ดูแลอนุมัติ`
+        : 'ส่งคำขอลาแล้ว รอผู้ดูแลอนุมัติ'
     );
   };
 

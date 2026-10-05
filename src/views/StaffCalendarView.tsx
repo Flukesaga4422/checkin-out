@@ -55,9 +55,12 @@ export const StaffCalendarView: React.FC<StaffCalendarViewProps> = ({
     const leavesOnDay = userLeaves.filter(
       (l) => l.date === dateKey && l.status !== 'rejected'
     );
-    const hasDayOff = leavesOnDay.some((l) => l.type === 'dayoff');
-    const hasSickLeave = leavesOnDay.some((l) => l.type === 'sick');
-    const otherLeave = leavesOnDay.find((l) => l.type !== 'dayoff' && l.type !== 'sick');
+    const approvedDayOff = leavesOnDay.find((l) => l.type === 'dayoff' && l.status === 'approved');
+    const pendingDayOff = leavesOnDay.find((l) => l.type === 'dayoff' && l.status === 'pending');
+    const approvedSick = leavesOnDay.find((l) => l.type === 'sick' && l.status === 'approved');
+    const pendingSick = leavesOnDay.find((l) => l.type === 'sick' && l.status === 'pending');
+    const approvedOther = leavesOnDay.find((l) => l.type !== 'dayoff' && l.type !== 'sick' && l.status === 'approved');
+    const pendingOther = leavesOnDay.find((l) => l.type !== 'dayoff' && l.type !== 'sick' && l.status === 'pending');
 
     let cellBg = 'bg-white dark:bg-[#172A27] text-slate-800 dark:text-slate-100';
     let borderStyle = 'border border-slate-200/80 dark:border-[#254039]';
@@ -76,22 +79,38 @@ export const StaffCalendarView: React.FC<StaffCalendarViewProps> = ({
         badgeText = 'เข้างาน';
         badgeClass = 'text-[#2F7D6D] dark:text-[#4FB39F]';
       }
-    } else if (hasDayOff) {
-      // Highlight Weekly Day Off
+    } else if (approvedDayOff) {
+      // Approved Weekly Day Off
       cellBg = 'bg-[#CCFBF1]/75 dark:bg-[#143D36] text-[#0D9488] dark:text-[#5EEAD4] font-semibold';
       borderStyle = 'border-[#0D9488]/40 ring-1 ring-[#0D9488]/30';
       badgeText = 'หยุดปกติ';
       badgeClass = 'bg-[#0D9488]/15 text-[#0D9488] dark:text-[#5EEAD4]';
-    } else if (hasSickLeave) {
+    } else if (pendingDayOff) {
+      // Pending Weekly Day Off
+      cellBg = 'bg-amber-50/80 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 font-semibold';
+      borderStyle = 'border-dashed border-2 border-amber-400 dark:border-amber-600';
+      badgeText = 'รออนุมัติ';
+      badgeClass = 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200';
+    } else if (approvedSick) {
       cellBg = 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-semibold';
       borderStyle = 'border-blue-300 dark:border-blue-900';
       badgeText = 'ลาป่วย';
       badgeClass = 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300';
-    } else if (otherLeave) {
+    } else if (pendingSick) {
+      cellBg = 'bg-blue-50/50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 font-semibold';
+      borderStyle = 'border-dashed border-2 border-blue-400';
+      badgeText = 'รออนุมัติ';
+      badgeClass = 'bg-blue-100 text-blue-800';
+    } else if (approvedOther) {
       cellBg = 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 font-semibold';
       borderStyle = 'border-amber-300 dark:border-amber-900';
-      badgeText = LEAVE_TYPE_MAP[otherLeave.type].label;
+      badgeText = LEAVE_TYPE_MAP[approvedOther.type].label;
       badgeClass = 'bg-amber-100 text-amber-800';
+    } else if (pendingOther) {
+      cellBg = 'bg-slate-50 dark:bg-[#1B3A34]/30 text-slate-700 dark:text-slate-300 font-semibold';
+      borderStyle = 'border-dashed border-2 border-slate-400';
+      badgeText = 'รออนุมัติ';
+      badgeClass = 'bg-slate-200 text-slate-700';
     }
 
     if (isHoliday) {
@@ -198,7 +217,11 @@ export const StaffCalendarView: React.FC<StaffCalendarViewProps> = ({
         <div className="mt-4 pt-3 border-t border-slate-100 dark:border-[#254039] flex flex-wrap gap-x-3.5 gap-y-2 text-xs text-slate-500 dark:text-[#8FAAA4]">
           <span className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-md bg-[#CCFBF1] border border-[#0D9488]" />
-            <span className="font-semibold text-[#0D9488]">วันหยุดปกติ</span>
+            <span className="font-semibold text-[#0D9488]">วันหยุดปกติ (อนุมัติแล้ว)</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-md bg-amber-50 border-2 border-dashed border-amber-400" />
+            <span className="text-amber-700 dark:text-amber-300 font-medium">รออนุมัติวันหยุด/ลา</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-md bg-[#E1F0EC] border border-[#2F7D6D]" />
@@ -211,10 +234,6 @@ export const StaffCalendarView: React.FC<StaffCalendarViewProps> = ({
           <span className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-md border-2 border-[#C99A3B]" />
             <span>วันหยุดร้าน</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-md bg-blue-100 border border-blue-400" />
-            <span>ลาป่วย</span>
           </span>
         </div>
       </div>

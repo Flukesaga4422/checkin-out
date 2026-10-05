@@ -49,8 +49,8 @@ export const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
     const leavesOnDay = leaves.filter(
       (l) => l.date === dateKey && l.status !== 'rejected'
     );
-    const dayOffCount = leavesOnDay.filter((l) => l.type === 'dayoff').length;
-    const sickCount = leavesOnDay.filter((l) => l.type === 'sick').length;
+    const approvedDayOffCount = leavesOnDay.filter((l) => l.type === 'dayoff' && l.status === 'approved').length;
+    const pendingCount = leavesOnDay.filter((l) => l.status === 'pending').length;
 
     // Check if anyone was late on this day
     const anyLate = Object.keys(attendanceMap).some((k) => {
@@ -61,9 +61,12 @@ export const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
     let cellBg = 'bg-white dark:bg-[#172A27] text-slate-800 dark:text-slate-100';
     let borderStyle = 'border border-slate-200/80 dark:border-[#254039]';
 
-    if (dayOffCount > 0 && !anyLate) {
+    if (approvedDayOffCount > 0 && !anyLate) {
       cellBg = 'bg-[#CCFBF1]/40 dark:bg-[#143D36]/40 text-slate-800 dark:text-slate-100';
       borderStyle = 'border-[#0D9488]/30';
+    } else if (pendingCount > 0 && !anyLate) {
+      cellBg = 'bg-amber-50/50 dark:bg-amber-950/20 text-slate-800 dark:text-slate-100';
+      borderStyle = 'border-dashed border-2 border-amber-400 dark:border-amber-600';
     }
 
     if (isHoliday) {
@@ -88,10 +91,14 @@ export const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
           )}
         </div>
 
-        {/* Day Off badge or leave dots */}
-        {dayOffCount > 0 ? (
+        {/* Day Off badge or pending or leave dots */}
+        {approvedDayOffCount > 0 ? (
           <span className="text-[9px] font-bold px-1 py-0.2 rounded-md bg-[#0D9488]/15 text-[#0D9488] dark:text-[#5EEAD4] leading-tight mb-0.5 truncate max-w-full">
-            หยุด {dayOffCount}
+            หยุด {approvedDayOffCount}
+          </span>
+        ) : pendingCount > 0 ? (
+          <span className="text-[9px] font-bold px-1 py-0.2 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 leading-tight mb-0.5 truncate max-w-full">
+            รอ {pendingCount}
           </span>
         ) : (
           <div className="flex items-center gap-0.5 h-3 mb-0.5">
@@ -172,7 +179,11 @@ export const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
         <div className="mt-4 pt-3 border-t border-slate-100 dark:border-[#254039] flex flex-wrap gap-x-3.5 gap-y-2 text-xs text-slate-500 dark:text-[#8FAAA4]">
           <span className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-md bg-[#CCFBF1] border border-[#0D9488]" />
-            <span className="font-semibold text-[#0D9488]">วันหยุดปกติ (สัปดาห์ละ 1 วัน/ลากยาว)</span>
+            <span className="font-semibold text-[#0D9488]">วันหยุดปกติ (อนุมัติแล้ว)</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-md bg-amber-100 border-2 border-dashed border-amber-400" />
+            <span className="text-amber-800 dark:text-amber-300 font-medium">มีคำขอรออนุมัติ</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-md border-2 border-[#C99A3B]" />

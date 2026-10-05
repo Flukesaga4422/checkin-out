@@ -393,7 +393,7 @@ export const DayDetailsSheet: React.FC<DayDetailsSheetProps> = ({
                         <span>วันหยุดปกติ (วันหยุดประจำสัปดาห์):</span>
                       </div>
                       <p className="text-[11px] leading-relaxed">
-                        พนักงานมีสิทธิ์หยุดสัปดาห์ละ 1 วัน สามารถเลือกจัดวันหยุดสะสมหรือหยุดต่อเนื่องยาวได้ตามตกลง ไม่ใช่วันลากิจ/ลาป่วย และไม่ถูกหักเงินเดือน
+                        พนักงานมีสิทธิ์หยุดสัปดาห์ละ 1 วัน หรือสะสมหยุดยาวได้ตามตกลง เมื่อส่งคำขอแล้ว ผู้ดูแลร้านจะตรวจสอบและอนุมัติให้ตามระบบ (ไม่ถูกหักเงินเดือน)
                       </p>
                     </div>
                   )}
@@ -497,8 +497,8 @@ export const DayDetailsSheet: React.FC<DayDetailsSheetProps> = ({
                   >
                     {selectedType === 'dayoff'
                       ? isMultiDay
-                        ? `บันทึกวันหยุดปกติ (${formatThaiDate(dateStr)} - ${formatThaiDate(endDateStr)})`
-                        : 'บันทึกวันหยุดประจำสัปดาห์'
+                        ? `ส่งคำขอวันหยุดปกติต่อเนื่อง (${formatThaiDate(dateStr)} - ${formatThaiDate(endDateStr)})`
+                        : 'ส่งคำขอวันหยุดปกติ (รออนุมัติ)'
                       : isMultiDay
                       ? `ส่งคำขอลา (${formatThaiDate(dateStr)} - ${formatThaiDate(endDateStr)})`
                       : 'ส่งคำขอลา'}
