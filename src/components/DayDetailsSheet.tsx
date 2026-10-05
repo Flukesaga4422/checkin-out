@@ -13,6 +13,8 @@ import {
   Palmtree,
   Sparkles,
   Layers,
+  Users,
+  Check,
 } from 'lucide-react';
 import { AttendanceRecord, LeaveRequest, LeaveType, Role, User } from '../types';
 import {
@@ -49,6 +51,7 @@ interface DayDetailsSheetProps {
     note: string,
     endDateStr?: string
   ) => void;
+  onSetLeaveStatus?: (leaveId: number, status: 'approved' | 'rejected') => void;
   onViewCert?: (
     certFile: string,
     certName: string | undefined,
@@ -62,6 +65,7 @@ interface DayDetailsSheetProps {
 export const DayDetailsSheet: React.FC<DayDetailsSheetProps> = ({
   dateStr,
   role,
+  currentUserId,
   users,
   holidayName,
   userAttendance,
@@ -72,6 +76,7 @@ export const DayDetailsSheet: React.FC<DayDetailsSheetProps> = ({
   onDeleteHoliday,
   onRequestLeave,
   onAdminAssignLeave,
+  onSetLeaveStatus,
   onViewCert,
   onClose,
 }) => {
@@ -82,6 +87,10 @@ export const DayDetailsSheet: React.FC<DayDetailsSheetProps> = ({
   const [certName, setCertName] = useState<string | undefined>(undefined);
   const [isMultiDay, setIsMultiDay] = useState(false);
   const [endDateStr, setEndDateStr] = useState<string>(dateStr);
+  const [showLeaveForm, setShowLeaveForm] = useState(false);
+
+  // Active leaves on this date (not rejected)
+  const activeLeavesOnDate = allLeavesOnDate.filter((l) => l.status !== 'rejected');
 
   // Admin holiday setting state
   const [holidayInput, setHolidayInput] = useState<string>(holidayName || '');
@@ -238,75 +247,150 @@ export const DayDetailsSheet: React.FC<DayDetailsSheetProps> = ({
                 </div>
               )}
 
-              {/* Existing Leave Requests for this user on this day */}
-              {userLeaves.length > 0 ? (
-                <div className="space-y-2">
-                  <span className="text-xs font-semibold text-slate-500 dark:text-[#8FAAA4] uppercase tracking-wider block">
-                    รายการวันหยุด / วันลาในวันนี้
+              {/* Team Day-Off & Leave Schedule for Today (Show all colleagues who are off/on leave) */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-700 dark:text-[#E4F0ED] flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-[#2F7D6D] dark:text-[#4FB39F]" />
+                    <span>พนักงานที่หยุด / ลางานในวันนี้ ({activeLeavesOnDate.length} คน)</span>
                   </span>
-                  {userLeaves.map((l) => (
-                    <div
-                      key={l.id}
-                      className="p-3.5 bg-slate-50 dark:bg-[#1B3A34]/40 rounded-2xl border border-slate-200 dark:border-[#254039] flex items-center justify-between gap-2"
-                    >
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="w-2.5 h-2.5 rounded-full shrink-0"
-                            style={{ backgroundColor: LEAVE_TYPE_MAP[l.type].color }}
-                          />
-                          <span className="font-semibold text-sm text-slate-800 dark:text-slate-100 block truncate">
-                            {LEAVE_TYPE_MAP[l.type].label}
-                          </span>
+                  {activeLeavesOnDate.length > 0 && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#1B3A34] text-slate-600 dark:text-[#8FAAA4] font-medium">
+                      มีคนหยุดงาน
+                    </span>
+                  )}
+                </div>
+
+                {activeLeavesOnDate.length > 0 ? (
+                  <div className="space-y-2">
+                    {activeLeavesOnDate.map((l) => {
+                      const u = getUser(l.uid);
+                      const isMe = l.uid === currentUserId;
+                      const typeInfo = LEAVE_TYPE_MAP[l.type];
+                      const statusInfo = STATUS_MAP[l.status];
+
+                      return (
+                        <div
+                          key={l.id}
+                          className={`p-3 rounded-2xl border transition-all ${
+                            isMe
+                              ? 'bg-[#E1F0EC]/60 dark:bg-[#1B3A34]/50 border-[#2F7D6D]/40 ring-1 ring-[#2F7D6D]/20 shadow-xs'
+                              : 'bg-slate-50 dark:bg-[#1B3A34]/30 border-slate-200/70 dark:border-[#254039]'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-sm text-[#17332F] dark:text-[#E4F0ED] truncate">
+                                  {u.name}
+                                </span>
+                                {isMe && (
+                                  <span className="px-1.5 py-0.2 rounded-full bg-[#2F7D6D] text-white text-[10px] font-bold">
+                                    ตัวคุณ
+                                  </span>
+                                )}
+                                <span className="text-xs text-slate-400 truncate">
+                                  ({u.pos || 'พนักงาน'})
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-2 mt-1">
+                                <span
+                                  className="px-2 py-0.5 rounded-full text-xs font-semibold"
+                                  style={{
+                                    backgroundColor: typeInfo.bg,
+                                    color: typeInfo.color,
+                                  }}
+                                >
+                                  {typeInfo.label}
+                                </span>
+                                {l.note && (
+                                  <span className="text-xs text-slate-500 dark:text-[#8FAAA4] truncate">
+                                    "{l.note}"
+                                  </span>
+                                )}
+                              </div>
+
+                              {l.certFile && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    onViewCert?.(
+                                      l.certFile!,
+                                      l.certName,
+                                      u.name,
+                                      l.date,
+                                      l.note
+                                    )
+                                  }
+                                  className="mt-1 text-xs text-[#2F7D6D] dark:text-[#4FB39F] font-semibold flex items-center gap-1 hover:underline cursor-pointer"
+                                >
+                                  <FileText className="w-3.5 h-3.5" />
+                                  <span>ดูรูปถ่ายใบรับรองแพทย์</span>
+                                </button>
+                              )}
+                            </div>
+
+                            <span
+                              className={`text-[11px] px-2.5 py-0.5 rounded-full font-medium shrink-0 ${statusInfo.tagClass}`}
+                            >
+                              {statusInfo.label}
+                            </span>
+                          </div>
                         </div>
-                        {l.note && (
-                          <span className="text-xs text-slate-500 dark:text-[#8FAAA4] block mt-0.5 pl-4">
-                            {l.note}
-                          </span>
-                        )}
-                        {l.certFile && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              onViewCert?.(
-                                l.certFile!,
-                                l.certName,
-                                getUser(l.uid).name,
-                                l.date,
-                                l.note
-                              )
-                            }
-                            className="mt-1 pl-4 text-xs text-[#2F7D6D] dark:text-[#4FB39F] font-semibold flex items-center gap-1 hover:underline cursor-pointer"
-                          >
-                            <FileText className="w-3.5 h-3.5" />
-                            <span>ดูรูปถ่ายใบรับรองแพทย์</span>
-                          </button>
-                        )}
-                      </div>
-                      <span
-                        className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ${
-                          STATUS_MAP[l.status].tagClass
-                        }`}
-                      >
-                        {STATUS_MAP[l.status].label}
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/60 rounded-2xl flex items-center gap-2.5 text-xs text-emerald-800 dark:text-emerald-200">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <span className="font-semibold block">ไม่มีพนักงานหยุดในวันนี้</span>
+                      <span className="text-[11px] text-emerald-700/80 dark:text-emerald-300/80">
+                        พนักงานทุกคนมาปฏิบัติงานตามปกติ สามารถลงวันหยุดหรือยื่นลาได้
                       </span>
                     </div>
-                  ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Form to request leave or weekly day-off on this day */}
+              {userLeaves.length > 0 && !showLeaveForm ? (
+                <div className="p-3 bg-slate-50 dark:bg-[#0F1B19]/50 rounded-2xl border border-slate-200/60 dark:border-[#254039] flex items-center justify-between text-xs">
+                  <span className="text-slate-600 dark:text-slate-300">
+                    คุณมีรายการวันหยุด/ลาในวันนี้แล้ว ({STATUS_MAP[userLeaves[0].status].label})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowLeaveForm(true)}
+                    className="text-[#2F7D6D] dark:text-[#4FB39F] font-semibold hover:underline cursor-pointer"
+                  >
+                    + ยื่นขอเพิ่ม
+                  </button>
                 </div>
               ) : (
-                /* Form to request leave or weekly day-off on this day */
-                <form onSubmit={handleLeaveSubmit} className="space-y-3 pt-1 text-xs">
+                <form onSubmit={handleLeaveSubmit} className="space-y-3 pt-2 text-xs border-t border-slate-100 dark:border-[#254039]">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-sm font-semibold text-[#17332F] dark:text-[#E4F0ED]">
                       <PlusCircle className="w-4 h-4 text-[#2F7D6D] dark:text-[#4FB39F]" />
                       <span>ลงวันหยุดปกติ / ยื่นขอลา</span>
                     </div>
 
+                    {userLeaves.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowLeaveForm(false)}
+                        className="text-xs text-slate-400 hover:text-slate-600 underline cursor-pointer"
+                      >
+                        ยกเลิก
+                      </button>
+                    )}
+
                     {/* Toggle consecutive multi-day off ("ลากยาว") */}
                     <button
                       type="button"
                       onClick={() => setIsMultiDay(!isMultiDay)}
-                      className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-all ${
+                      className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
                         isMultiDay
                           ? 'bg-[#2F7D6D] text-white border-[#2F7D6D]'
                           : 'border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1B3A34]'
@@ -698,13 +782,41 @@ export const DayDetailsSheet: React.FC<DayDetailsSheetProps> = ({
                             </button>
                           )}
                         </div>
-                        <span
-                          className={`px-2.5 py-0.5 rounded-full font-medium shrink-0 ${
-                            STATUS_MAP[l.status].tagClass
-                          }`}
-                        >
-                          {STATUS_MAP[l.status].label}
-                        </span>
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full font-medium ${
+                              STATUS_MAP[l.status].tagClass
+                            }`}
+                          >
+                            {STATUS_MAP[l.status].label}
+                          </span>
+                          {l.status === 'pending' && onSetLeaveStatus && (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  playSound('click');
+                                  onSetLeaveStatus(l.id, 'rejected');
+                                }}
+                                className="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 text-[10px] font-semibold flex items-center gap-0.5 transition-colors cursor-pointer"
+                              >
+                                <X className="w-3 h-3" />
+                                <span>ไม่อนุมัติ</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  playSound('success');
+                                  onSetLeaveStatus(l.id, 'approved');
+                                }}
+                                className="px-2 py-1 rounded-lg bg-[#2F7D6D] hover:bg-[#27685b] text-white text-[10px] font-semibold flex items-center gap-0.5 transition-transform active:scale-95 cursor-pointer shadow-xs"
+                              >
+                                <Check className="w-3 h-3" />
+                                <span>อนุมัติ</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
