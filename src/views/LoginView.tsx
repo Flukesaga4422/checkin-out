@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, ArrowRight, ShieldCheck, UserCheck, Smartphone, Share, Download, QrCode } from 'lucide-react';
+import { Sparkles, ArrowRight, Smartphone, Download } from 'lucide-react';
 import { User } from '../types';
 
 interface LoginViewProps {
@@ -42,12 +42,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
     onLogin(found);
   };
 
-  const handleQuickSelect = (u: User) => {
-    setUsername(u.user);
-    setPassword(u.pass);
-    onLogin(u);
-  };
-
   return (
     <div className="min-h-screen flex flex-col justify-center px-4 py-8 sm:px-6">
       <div className="w-full max-w-md mx-auto bg-white dark:bg-[#172A27] rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-200/80 dark:border-[#254039]">
@@ -64,44 +58,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
           </p>
         </div>
 
-        {/* Quick Demo Switcher Chips */}
-        {users.length > 0 && (
-          <div className="mb-5 p-3.5 bg-[#EDF3F1] dark:bg-[#0F1B19] rounded-2xl border border-slate-200/50 dark:border-[#254039]">
-            <div className="text-xs font-semibold text-slate-500 dark:text-[#8FAAA4] mb-2 flex items-center gap-1.5">
-              <UserCheck className="w-3.5 h-3.5 text-[#2F7D6D] dark:text-[#4FB39F]" />
-              <span>เข้าสู่ระบบด่วน:</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {users.map((u) => (
-                <button
-                  key={u.id}
-                  type="button"
-                  onClick={() => handleQuickSelect(u)}
-                  className="text-left px-3 py-2 rounded-xl bg-white dark:bg-[#172A27] border border-slate-200 dark:border-[#254039] hover:border-[#2F7D6D] hover:bg-[#E1F0EC]/50 dark:hover:bg-[#1B3A34] transition-all group"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-xs text-[#17332F] dark:text-[#E4F0ED] truncate">
-                      {u.name.split(' ')[0]}
-                    </span>
-                    {u.role === 'admin' ? (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-medium">
-                        ผู้ดูแล
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-slate-400 group-hover:text-[#2F7D6D]">
-                        {u.user}
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-[11px] text-slate-500 dark:text-[#8FAAA4] truncate mt-0.5">
-                    {u.pos || 'พนักงาน'}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -113,7 +69,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
               id="u"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="เช่น admin หรือ som"
+              placeholder="ชื่อผู้ใช้งาน"
               autoCapitalize="none"
               autoComplete="username"
               required
@@ -130,7 +86,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
               id="pw"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="รหัสผ่าน (เริ่มต้น: 1234)"
+              placeholder="รหัสผ่าน"
               autoComplete="current-password"
               required
               className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-[#254039] bg-slate-50 dark:bg-[#0F1B19] text-[#17332F] dark:text-[#E4F0ED] text-sm focus:outline-none focus:ring-2 focus:ring-[#2F7D6D]"
