@@ -57,8 +57,8 @@ export const Header: React.FC<HeaderProps> = ({
             title="ดาวน์โหลด APK และติดตั้งแอพลง Android"
           >
             <Smartphone className="w-3.5 h-3.5 text-[#5EEAD4]" />
-            <span className="hidden sm:inline">โหลด APK / แอพ</span>
-            <span className="sm:hidden text-[11px] font-bold text-[#5EEAD4]">APK</span>
+            <span className="hidden sm:inline">{demoMode ? 'โหลด APK / แอพ' : 'ติดตั้งแอพ'}</span>
+            <span className="sm:hidden text-[11px] font-bold text-[#5EEAD4]">{demoMode ? 'APK' : 'แอพ'}</span>
           </button>
 
           {/* Quick Switch User Dropdown */}

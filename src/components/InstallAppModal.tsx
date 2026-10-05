@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import { playSound } from '../utils/dateUtils';
+import { cloudConfigured } from '../lib/cloud';
 
 interface InstallAppModalProps {
   onClose: () => void;
@@ -65,6 +66,22 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({ onClose }) => 
     playSound('success');
   };
 
+  if (cloudConfigured) return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80" onClick={onClose}>
+      <div className="w-full max-w-lg rounded-3xl bg-white dark:bg-[#172A27] p-6 space-y-4 shadow-xl" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center">
+          <h3 className="font-bold text-lg">ติดตั้งแอพบนมือถือ</h3>
+          <button type="button" onClick={onClose} aria-label="ปิด"><X className="w-5 h-5" /></button>
+        </div>
+        <p className="text-sm">ใช้แอพจากลิงก์นี้เพื่อให้ข้อมูลตรงกับระบบกลาง</p>
+        <p className="text-sm">Android: เปิดด้วย Chrome → เมนู ⋮ → ติดตั้งแอพ หรือเพิ่มลงหน้าจอหลัก</p>
+        <p className="text-sm">iPhone: เปิดด้วย Safari → แชร์ → เพิ่มไปยังหน้าจอโฮม</p>
+        {isInstallable && <button type="button" onClick={handleDirectInstall} className="w-full py-3 rounded-xl bg-[#2F7D6D] text-white">{installSuccess || isInstalled ? 'ติดตั้งแล้ว' : 'ติดตั้งแอพ'}</button>}
+        <button type="button" onClick={handleCopyLink} className="w-full py-3 rounded-xl border border-[#2F7D6D]">{copied ? 'คัดลอกแล้ว' : 'คัดลอกลิงก์แอพ'}</button>
+        <p className="text-xs text-slate-500">APK และแพ็กเกจ iOS เก่าในต้นแบบยังไม่ได้อัปเดตให้ใช้ฐานข้อมูลรุ่นนี้</p>
+      </div>
+    </div>
+  );
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
